@@ -1,0 +1,125 @@
+<button id="start" type="button">Start recording</button>
+<button id="stop" type="button">Stop recording</button>
+
+<div id="status">
+
+</div>
+
+<h3>Transcript</h3>
+<div id="transcript">
+will display here...
+</div>
+
+<style>
+  form input, form select {
+    display: block;
+  }
+
+  form > div {
+    margin-top: 1rem;
+  }
+</style>
+
+<h3>Form</h3>
+<form>
+  <div>
+    <label>First name</label>
+    <input id="first" placeholder="First name" />
+  </div>
+  <div>
+    <label>Last name</label>
+    <input id="last" placeholder="Last name" />
+  </div>
+  <div>
+    <label>Age</label>
+    <input id="age" placeholder="Age" type="number" />
+  </div>
+  <div>
+    <label>Operation System</label>
+    <select id="os" placeholder="Operation System">
+      <option value="linux">Linux</option>
+      <option value="android">Android</option>
+      <option value="windows">Windows</option>
+      <option value="mac">Mac</option>
+    </select>
+  </div>
+  <div>
+    <label>Work from home</label>
+    <input id="wfh" type="checkbox" />
+  </div>
+  <div>
+    <button type="button">
+      Submit
+    </button>
+  </div>
+</form>
+
+<script>
+  const status = document.getElementById('status');
+  let shouldStop = false;
+  const mediaType = 'audio/webm';
+  let stopped = false;
+  const options = { mimeType: mediaType };
+  let recordedChunks = [];
+  const start = document.getElementById('start');
+  const stop = document.getElementById('stop');
+  const transcript = document.getElementById('transcript');
+  let mediaRecorder;
+
+  stop.addEventListener('click', function () {
+    if (!mediaRecorder) {
+      status.innerText = 'No microphone permission';
+      return;
+    }
+    shouldStop = true;
+  });
+
+  start.addEventListener('click', function () {
+    if (!mediaRecorder) {
+      status.innerText = 'No microphone permission';
+      return;
+    }
+    if (mediaRecorder.state == 'recording') {
+      return;
+    }
+    recordedChunks = [];
+    stopped = false;
+    shouldStop = false;
+    mediaRecorder.start(1000);
+    status.innerText = 'Recoding...';
+  });
+
+  const handleSuccess = function (stream) {
+    mediaRecorder = new MediaRecorder(stream, options);
+    mediaRecorder.ondataavailable = e => {
+      recordedChunks.push(e.data);
+
+      if (shouldStop === true && stopped === false) {
+        mediaRecorder.stop();
+        stopped = true;
+      }
+    };
+
+    mediaRecorder.addEventListener('stop', function () {
+      status.innerText = 'Processing...';
+      const blob = new Blob(recordedChunks, { type: mediaType });
+      var formData = new FormData();
+      formData.append("file", blob);
+      let xhr = new XMLHttpRequest();
+      xhr.open('POST', 'http://127.0.0.1:9000/upload');
+      xhr.send(formData);
+      xhr.onload = function () {
+        status.innerText = 'Done!';
+        let responseObj = JSON.parse(xhr.response);
+        transcript.innerText = responseObj.transcription;
+        document.getElementById('first').value = responseObj.form.FirstName;
+        document.getElementById('last').value = responseObj.form.LastName;
+        document.getElementById('age').value = responseObj.form.Age;
+        document.getElementById('os').value = responseObj.form.OS.toLowerCase();
+      };
+    });
+
+  };
+
+  navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(handleSuccess);
+</script>
