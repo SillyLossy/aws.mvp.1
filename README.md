@@ -8,3 +8,7 @@ exports.region = 'your aws region';
 ```
 * Type `node index.js`. The server will run on your local port `9000`
 * Open `index.html` in your browser
+
+# Preview
+![Screenshot](https://raw.githubusercontent.com/SillyLossy/aws.mvp.1/master/screenshot.png "Screenshot")
+
